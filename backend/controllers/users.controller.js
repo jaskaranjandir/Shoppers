@@ -24,7 +24,8 @@ const createUser = async (req, res) => {
             password: hashedPassword,
             firstName,
             lastName,
-            address
+            address,
+            isAdmin: false
         });
 
         const savedUser = await newUser.save();
@@ -97,10 +98,10 @@ const deleteUserById = async (req, res) => {
 // Controller for checking user credentials during login
 const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, email, password } = req.body;
 
         // Find the user by email
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ $or: [{ username }, { email, }] });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -108,14 +109,24 @@ const loginUser = async (req, res) => {
         // Compare the provided password with the hashed password in the database
         const isPasswordValid = await compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid password' });
+            return res.status(401).json({ message: 'Invalid username/password' });
         }
 
-        res.json({ message: 'Login successful' });
+        let message;
+        if (user.isAdmin) {
+            message = 'Admin login successful';
+            // Additional admin-specific logic here
+        } else {
+            message = 'User login successful';
+            // Additional user-specific logic here
+        }
+
+        res.json({ message });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 export {
     createUser,
     getUsers,
